@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>React App in Flutter WebView</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        padding: 16px;
+        margin: 0;
+        transition: background-color 0.3s, color 0.3s;
+      }
+      .dark-mode {
+        background-color: #121212;
+        color: #e0e0e0;
+      }
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+      }
+      .header {
+        text-align: center;
+        margin-bottom: 24px;
+      }
+      .card {
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 16px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        transition: background-color 0.3s;
+      }
+      .dark-mode .card {
+        background-color: #242424;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      }
+      .light-mode .card {
+        background-color: #ffffff;
+      }
+      button {
+        background-color: #2196f3;
+        color: white;
+        border: none;
+        padding: 10px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        margin-right: 8px;
+      }
+      button:hover {
+        background-color: #1976d2;
+      }
+      .user-info {
+        margin-bottom: 16px;
+        font-weight: bold;
+      }
+      .response-area {
+        border: 1px solid #ddd;
+        padding: 12px;
+        border-radius: 4px;
+        margin-top: 16px;
+        min-height: 50px;
+        transition: background-color 0.3s, border-color 0.3s;
+      }
+      .dark-mode .response-area {
+        border-color: #444;
+        background-color: #333;
+      }
+    </style>
+  </head>
+  <body class="light-mode">
+    <div id="app"></div>
+
+    <script>
+      // Data received from Flutter
+      let userData = {
+        username: "Guest",
+        isDarkMode: false,
+      };
+
+      // Function to receive data from Flutter
+      window.receiveDataFromFlutter = function (data) {
+        try {
+          const parsedData = typeof data === "string" ? JSON.parse(data) : data;
+          console.log("Received data from Flutter:", parsedData);
+
+          // Update user data
+          if (parsedData.username) {
+            userData.username = parsedData.username;
+          }
+          if (parsedData.isDarkMode !== undefined) {
+            userData.isDarkMode = parsedData.isDarkMode;
+            updateTheme(userData.isDarkMode);
+          }
+
+          // Update UI if the app has been rendered
+          renderApp();
+
+          // Add to response area
+          const responseArea = document.getElementById("response-area");
+          if (responseArea) {
+            const timestamp = parsedData.timestamp || new Date().toISOString();
+            responseArea.innerHTML += `<p>Message received at ${timestamp}</p>`;
+          }
+        } catch (e) {
+          console.error("Error processing data from Flutter:", e);
+        }
+      };
+
+      // Apply stored data if available
+      if (window.flutterUserData) {
+        receiveDataFromFlutter(window.flutterUserData);
+        delete window.flutterUserData;
+      }
+
+      function updateTheme(isDark) {
+        document.body.className = isDark ? "dark-mode" : "light-mode";
+      }
+
+      function sendMessageToFlutter(action, message) {
+        if (window.FlutterChannel) {
+          const data = JSON.stringify({
+            action: action,
+            message: message,
+          });
+          window.FlutterChannel.postMessage(data);
+        } else {
+          console.error("Flutter channel not available");
+          alert("Flutter channel not available");
+        }
+      }
+
+      function updateUserData(newData) {
+        if (window.FlutterChannel) {
+          const data = JSON.stringify({
+            action: "updateUserData",
+            userData: newData,
+          });
+          window.FlutterChannel.postMessage(data);
+        }
+      }
+
+      function sendLogEvent(event) {
+        if (window.FlutterChannel) {
+          const data = JSON.stringify({
+            action: "logEvent",
+            event: event,
+          });
+          window.FlutterChannel.postMessage(data);
+        }
+      }
+
+      // Simple React App
+      function App() {
+        const [message, setMessage] = React.useState("");
+        const [username, setUsername] = React.useState(userData.username);
+        const [isDarkMode, setIsDarkMode] = React.useState(userData.isDarkMode);
+
+        // Update when userData changes
+        React.useEffect(() => {
+          setUsername(userData.username);
+          setIsDarkMode(userData.isDarkMode);
+        }, [userData.username, userData.isDarkMode]);
+
+        const handleSendAlert = () => {
+          sendMessageToFlutter("showAlert", message || "Hello from React!");
+          sendLogEvent("alert_sent");
+        };
+
+        const handleToggleTheme = () => {
+          const newDarkMode = !isDarkMode;
+          setIsDarkMode(newDarkMode);
+          updateUserData({ darkMode: newDarkMode });
+          updateTheme(newDarkMode);
+          sendLogEvent(`theme_changed_to_${newDarkMode ? "dark" : "light"}`);
+        };
+
+        const handleUpdateUsername = () => {
+          const newUsername = document.getElementById("username-input").value;
+          if (newUsername) {
+            setUsername(newUsername);
+            updateUserData({ username: newUsername });
+            sendLogEvent("username_updated");
+          }
+        };
+
+        return React.createElement(
+          "div",
+          { className: "container" },
+          React.createElement(
+            "div",
+            { className: "header" },
+            React.createElement("h1", null, "React in Flutter WebView")
+          ),
+          React.createElement(
+            "div",
+            { className: "card" },
+            React.createElement(
+              "div",
+              { className: "user-info" },
+              "Welcome, ",
+              username,
+              "!"
+            ),
+            React.createElement(
+              "div",
+              null,
+              React.createElement(
+                "p",
+                null,
+                "Theme: ",
+                isDarkMode ? "Dark Mode" : "Light Mode"
+              )
+            ),
+            React.createElement(
+              "div",
+              null,
+              React.createElement(
+                "button",
+                { onClick: handleToggleTheme },
+                "Toggle Theme"
+              )
+            )
+          ),
+          React.createElement(
+            "div",
+            { className: "card" },
+            React.createElement("h3", null, "Send Message to Flutter"),
+            React.createElement(
+              "div",
+              null,
+              React.createElement("input", {
+                type: "text",
+                placeholder: "Enter message",
+                value: message,
+                onChange: (e) => setMessage(e.target.value),
+                style: {
+                  padding: "8px",
+                  width: "100%",
+                  boxSizing: "border-box",
+                  marginBottom: "8px",
+                  borderRadius: "4px",
+                  border: "1px solid #ccc",
+                  backgroundColor: isDarkMode ? "#333" : "#fff",
+                  color: isDarkMode ? "#e0e0e0" : "#000",
+                },
+              }),
+              React.createElement(
+                "button",
+                { onClick: handleSendAlert },
+                "Send Alert to Flutter"
+              )
+            )
+          ),
+          React.createElement(
+            "div",
+            { className: "card" },
+            React.createElement("h3", null, "Update Username"),
+            React.createElement(
+              "div",
+              null,
+              React.createElement("input", {
+                id: "username-input",
+                type: "text",
+                placeholder: "New username",
+                defaultValue: username,
+                style: {
+                  padding: "8px",
+                  width: "100%",
+                  boxSizing: "border-box",
+                  marginBottom: "8px",
+                  borderRadius: "4px",
+                  border: "1px solid #ccc",
+                  backgroundColor: isDarkMode ? "#333" : "#fff",
+                  color: isDarkMode ? "#e0e0e0" : "#000",
+                },
+              }),
+              React.createElement(
+                "button",
+                { onClick: handleUpdateUsername },
+                "Update"
+              )
+            )
+          ),
+          React.createElement(
+            "div",
+            { className: "card" },
+            React.createElement("h3", null, "Response from Flutter"),
+            React.createElement(
+              "div",
+              {
+                id: "response-area",
+                className: "response-area",
+              },
+              "Waiting for messages from Flutter..."
+            )
+          )
+        );
+      }
+
+      function renderApp() {
+        const domContainer = document.getElementById("app");
+        const root = ReactDOM.createRoot(domContainer);
+        root.render(React.createElement(App));
+      }
+
+      // Initial render
+      document.addEventListener("DOMContentLoaded", () => {
+        renderApp();
+        updateTheme(userData.isDarkMode);
+
+        // Let Flutter know the page is ready
+        setTimeout(() => {
+          sendLogEvent("page_loaded");
+        }, 500);
+      });
+    </script>
+  </body>
+</html>
