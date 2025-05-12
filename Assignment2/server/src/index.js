@@ -11,10 +11,15 @@ app.use(express.json());
 import { createPool } from "mysql2/promise";
 
 const pool = createPool({
-  host: "mysql",
-  user: "appuser",
-  password: "userpassword",
-  database: "car_game_db",
+  host: process.env.HOST,
+  user: process.env.USER,
+  password: process.env.PASSWORD,
+  database: process.env.DATABASE,
+  port: process.env.PORT,
+  // host: "mysql",
+  // user: "appuser",
+  // password: "userpassword",
+  // database: "car_game_db",
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
