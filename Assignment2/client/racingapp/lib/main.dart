@@ -88,6 +88,7 @@ class _CarRacingGameState extends State<CarRacingGame> {
       };
 
       final sessionData = await ApiService.saveGameSession(
+        id: sessionId,
         playerName: playerName,
         score: 0,
         timePlayed: 0,
@@ -100,7 +101,7 @@ class _CarRacingGameState extends State<CarRacingGame> {
         score = 0;
         gameTime = 0;
         carPositionX = 0.5;
-        sessionId = sessionData['id'];
+        sessionId = sessionData['sessionId'];
 
         // Reset road
         roadSegments.clear();
@@ -121,7 +122,7 @@ class _CarRacingGameState extends State<CarRacingGame> {
       if (sessionId != null) {
         ApiService.saveGameAction(
           sessionId: sessionId!,
-          actionType: 'game_start',
+          actionType: 'START',
         );
       }
     } catch (e) {
@@ -165,11 +166,12 @@ class _CarRacingGameState extends State<CarRacingGame> {
         // Record game end action
         await ApiService.saveGameAction(
           sessionId: sessionId!,
-          actionType: 'game_end',
+          actionType: 'FINISH',
         );
 
         // Then update the game session with final data
         await ApiService.saveGameSession(
+          id: sessionId,
           playerName: playerName,
           score: score.toInt(),
           timePlayed: gameTime,
@@ -265,7 +267,7 @@ class _CarRacingGameState extends State<CarRacingGame> {
     if (sessionId != null) {
       ApiService.saveGameAction(
         sessionId: sessionId!,
-        actionType: 'move_left',
+        actionType: 'MOVE_LEFT',
       );
     }
   }
@@ -280,7 +282,7 @@ class _CarRacingGameState extends State<CarRacingGame> {
     if (sessionId != null) {
       ApiService.saveGameAction(
         sessionId: sessionId!,
-        actionType: 'move_right',
+        actionType: 'MOVE_RIGHT',
       );
     }
   }

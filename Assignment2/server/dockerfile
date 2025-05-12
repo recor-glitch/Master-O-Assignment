@@ -1,0 +1,8 @@
+FROM node:18
+WORKDIR /app
+COPY . .
+# Dockerfile for the server
+COPY wait-for-it.sh /wait-for-it.sh
+
+RUN npm install
+CMD ["npm", "run", "dev"]

@@ -14,6 +14,7 @@ class ApiService {
 
   // Record a new game session
   static Future<Map<String, dynamic>> saveGameSession({
+    required int? id,
     required String playerName,
     required int score,
     required int timePlayed,
@@ -24,6 +25,7 @@ class ApiService {
         Uri.parse('$baseUrl/game-sessions'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
+          'id': id,
           'playerName': playerName,
           'score': score,
           'timePlayed': timePlayed,
@@ -39,7 +41,7 @@ class ApiService {
       print('Response status: ${response.statusCode}');
       print('Response body: ${response.body}');
 
-      if (response.statusCode == 201) {
+      if (response.statusCode == 201 || response.statusCode == 200) {
         return json.decode(response.body);
       } else {
         throw Exception('Failed to save game session: ${response.statusCode}');

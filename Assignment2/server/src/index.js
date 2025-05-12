@@ -1,11 +1,9 @@
 import cors from "cors";
 import express from "express";
 
-// Initialize Express app
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
 app.use(cors());
 app.use(express.static("public"));
 app.use(express.json());
@@ -13,7 +11,7 @@ app.use(express.json());
 import { createPool } from "mysql2/promise";
 
 const pool = createPool({
-  host: "localhost",
+  host: "mysql",
   user: "appuser",
   password: "userpassword",
   database: "car_game_db",
@@ -52,29 +50,48 @@ const initializeDatabase = async () => {
   }
 };
 
-// API Routes
 app.post("/api/game-sessions", async (req, res) => {
   try {
-    const { playerName, score, timePlayed, deviceInfo } = req.body;
+    const { id, playerName, score, timePlayed, deviceInfo } = req.body;
 
-    const [result] = await pool.query(
-      "INSERT INTO game_sessions (player_name, score, time_played_ms, device_info) VALUES (?, ?, ?, ?)",
-      [playerName || "Anonymous", score, timePlayed, JSON.stringify(deviceInfo)]
+    if (!id) {
+      const [result] = await pool.query(
+        "INSERT INTO game_sessions (player_name, score, time_played_ms, device_info) VALUES (?, ?, ?, ?)",
+        [
+          playerName || "Anonymous",
+          score,
+          timePlayed,
+          JSON.stringify(deviceInfo),
+        ]
+      );
+
+      res.status(201).json({
+        success: true,
+        sessionId: result.insertId,
+      });
+      return;
+    }
+    // Update existing session
+    await pool.query(
+      "UPDATE game_sessions SET player_name = ?, score = ?, time_played_ms = ?, device_info = ? WHERE id = ?",
+      [
+        playerName || "Anonymous",
+        score,
+        timePlayed,
+        JSON.stringify(deviceInfo),
+        id,
+      ]
     );
 
-    res.status(201).json({
-      success: true,
-      sessionId: result.insertId,
-    });
+    res.status(200).json({ success: true });
   } catch (error) {
-    console.error("Error recording game session:", error);
+    console.error("Error recording game action:", error);
     res
       .status(500)
-      .json({ success: false, error: "Failed to record game session" });
+      .json({ success: false, error: "Failed to record game action" });
   }
 });
 
-// Record game actions
 app.post("/api/game-actions", async (req, res) => {
   try {
     const { sessionId, actionType } = req.body;
@@ -93,8 +110,7 @@ app.post("/api/game-actions", async (req, res) => {
   }
 });
 
-// Get all game sessions (for dashboard)
-app.get("/game-sessions", async (req, res) => {
+app.get("/api/game-sessions", async (req, res) => {
   try {
     const [rows] = await pool.query(
       "SELECT * FROM game_sessions ORDER BY completed_at DESC"
@@ -108,7 +124,6 @@ app.get("/game-sessions", async (req, res) => {
   }
 });
 
-// Get game statistics for dashboard
 app.get("/api/statistics", async (req, res) => {
   try {
     // Total number of games
@@ -161,7 +176,6 @@ app.get("/api/statistics", async (req, res) => {
   }
 });
 
-// Generate and download CSV report
 app.post("/api/reports/csv", async (req, res) => {
   try {
     const { metrics, dateRange } = req.body;
@@ -247,7 +261,6 @@ app.post("/api/reports/csv", async (req, res) => {
   }
 });
 
-// Start the server
 app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
   await initializeDatabase();
