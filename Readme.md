@@ -30,13 +30,13 @@ docker-compose up --build
 
 ## MANUAL SERVER SETUP (OPTIONAL)
 
-<!-- 4. Run the following command in the terminal:
+4. Run the following command in the terminal:
 
 ```
 cd server
 npm install
 npm run dev
-``` -->
+```
 
 5. Open the client project in Android Studio/vs code
 6. Run the AVD manager and create a virtual device on your computer.
