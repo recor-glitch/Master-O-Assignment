@@ -62,7 +62,7 @@ const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  const baseUrl = "http://localhost:3000/api";
+  const baseUrl = "https://master-o-assignment-aihc.onrender.com/api";
 
   useEffect(() => {
     const fetchData = async () => {
