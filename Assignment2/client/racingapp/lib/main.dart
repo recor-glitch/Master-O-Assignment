@@ -52,6 +52,10 @@ class _CarRacingGameState extends State<CarRacingGame> {
   final double moveSpeed = 0.05; // How much car moves when button pressed
   final int maxSegments = 10; // Max number of road segments visible
 
+  // Reference to maintain the game area size
+  final GlobalKey _gameAreaKey = GlobalKey();
+  Size _gameAreaSize = Size.zero;
+
   @override
   void initState() {
     super.initState();
@@ -63,6 +67,16 @@ class _CarRacingGameState extends State<CarRacingGame> {
       ));
     }
     playerNameController.text = playerName;
+
+    // Add post-frame callback to get the game area size after the first layout
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_gameAreaKey.currentContext != null) {
+        final RenderBox renderBox =
+            _gameAreaKey.currentContext!.findRenderObject() as RenderBox;
+        _gameAreaSize = renderBox.size;
+        setState(() {}); // Trigger rebuild with correct size
+      }
+    });
   }
 
   @override
@@ -339,158 +353,165 @@ class _CarRacingGameState extends State<CarRacingGame> {
               child: AspectRatio(
                 aspectRatio: 9 / 16, // Portrait mode for mobile
                 child: Container(
+                  key: _gameAreaKey,
                   color: Colors.green, // Background is grass
-                  child: Stack(
-                    children: [
-                      // Draw road segments
-                      ...roadSegments.map((segment) => Positioned(
-                            left: 0,
-                            right: 0,
-                            top: MediaQuery.of(context).size.height *
-                                (segment.y / maxSegments),
-                            height: MediaQuery.of(context).size.height /
-                                maxSegments,
-                            child: CustomPaint(
-                              painter: RoadPainter(
-                                roadWidth: roadWidth,
-                                offset: segment.offset,
-                              ),
-                              child: Container(),
-                            ),
-                          )),
+                  child: LayoutBuilder(builder: (context, constraints) {
+                    // Store the game area size for precise calculations
+                    _gameAreaSize =
+                        Size(constraints.maxWidth, constraints.maxHeight);
 
-                      // Draw car
-                      Positioned(
-                        left: MediaQuery.of(context).size.width * carPositionX -
-                            carWidth / 2,
-                        bottom: 100,
-                        width: carWidth,
-                        height: carHeight,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.red,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Column(
-                            children: [
-                              Expanded(
-                                flex: 3,
-                                child: Container(
-                                  margin: const EdgeInsets.symmetric(
-                                      horizontal: 10),
-                                  decoration: BoxDecoration(
-                                    color: Colors.lightBlue,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
+                    return Stack(
+                      children: [
+                        // Draw road segments
+                        ...roadSegments.map((segment) => Positioned(
+                              left: 0,
+                              right: 0,
+                              top: _gameAreaSize.height *
+                                  (segment.y / maxSegments),
+                              height: _gameAreaSize.height / maxSegments,
+                              child: CustomPaint(
+                                painter: RoadPainter(
+                                  roadWidth: roadWidth,
+                                  offset: segment.offset,
                                 ),
-                              ),
-                              Expanded(
-                                flex: 2,
                                 child: Container(),
                               ),
-                            ],
-                          ),
-                        ),
-                      ),
+                            )),
 
-                      // Game start/over overlay
-                      if (!isGameRunning)
-                        Center(
+                        // Draw car
+                        Positioned(
+                          left:
+                              _gameAreaSize.width * carPositionX - carWidth / 2,
+                          bottom: 100,
+                          width: carWidth,
+                          height: carHeight,
                           child: Container(
-                            padding: const EdgeInsets.all(20),
                             decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.7),
-                              borderRadius: BorderRadius.circular(10),
+                              color: Colors.red,
+                              borderRadius: BorderRadius.circular(8),
                             ),
                             child: Column(
-                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Text(
-                                  'Car Racing Game',
-                                  style: TextStyle(
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
+                                Expanded(
+                                  flex: 3,
+                                  child: Container(
+                                    margin: const EdgeInsets.symmetric(
+                                        horizontal: 10),
+                                    decoration: BoxDecoration(
+                                      color: Colors.lightBlue,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
                                   ),
                                 ),
-                                const SizedBox(height: 20),
-                                if (score > 0)
-                                  Text(
-                                    'Game Over!\nScore: ${score.toInt()}\nTime: ${(gameTime / 1000).toStringAsFixed(1)}s',
-                                    style: const TextStyle(
-                                      fontSize: 24,
-                                      color: Colors.white,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                const SizedBox(height: 10),
-
-                                // Player name display/input
-                                if (showNameInput)
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 10),
-                                    child: TextField(
-                                      controller: playerNameController,
-                                      style:
-                                          const TextStyle(color: Colors.white),
-                                      decoration: const InputDecoration(
-                                        labelText: 'Your Name',
-                                        labelStyle:
-                                            TextStyle(color: Colors.white70),
-                                        enabledBorder: OutlineInputBorder(
-                                          borderSide:
-                                              BorderSide(color: Colors.white54),
-                                        ),
-                                        focusedBorder: OutlineInputBorder(
-                                          borderSide:
-                                              BorderSide(color: Colors.blue),
-                                        ),
-                                      ),
-                                      onSubmitted: (value) {
-                                        setPlayerName(value);
-                                      },
-                                    ),
-                                  )
-                                else
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Text(
-                                        'Player: $playerName',
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                      IconButton(
-                                        icon: const Icon(Icons.edit,
-                                            color: Colors.white),
-                                        onPressed: toggleNameInput,
-                                      ),
-                                    ],
-                                  ),
-
-                                const SizedBox(height: 20),
-                                ElevatedButton(
-                                  onPressed: isLoading ? null : startGame,
-                                  style: ElevatedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 40, vertical: 15),
-                                  ),
-                                  child: isLoading
-                                      ? const CircularProgressIndicator()
-                                      : const Text(
-                                          'Start Game',
-                                          style: TextStyle(fontSize: 20),
-                                        ),
+                                Expanded(
+                                  flex: 2,
+                                  child: Container(),
                                 ),
                               ],
                             ),
                           ),
                         ),
-                    ],
-                  ),
+
+                        // Game start/over overlay
+                        if (!isGameRunning)
+                          Center(
+                            child: Container(
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.7),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Text(
+                                    'Car Racing Game',
+                                    style: TextStyle(
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 20),
+                                  if (score > 0)
+                                    Text(
+                                      'Game Over!\nScore: ${score.toInt()}\nTime: ${(gameTime / 1000).toStringAsFixed(1)}s',
+                                      style: const TextStyle(
+                                        fontSize: 24,
+                                        color: Colors.white,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  const SizedBox(height: 10),
+
+                                  // Player name display/input
+                                  if (showNameInput)
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 10),
+                                      child: TextField(
+                                        controller: playerNameController,
+                                        style: const TextStyle(
+                                            color: Colors.white),
+                                        decoration: const InputDecoration(
+                                          labelText: 'Your Name',
+                                          labelStyle:
+                                              TextStyle(color: Colors.white70),
+                                          enabledBorder: OutlineInputBorder(
+                                            borderSide: BorderSide(
+                                                color: Colors.white54),
+                                          ),
+                                          focusedBorder: OutlineInputBorder(
+                                            borderSide:
+                                                BorderSide(color: Colors.blue),
+                                          ),
+                                        ),
+                                        onSubmitted: (value) {
+                                          setPlayerName(value);
+                                        },
+                                      ),
+                                    )
+                                  else
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          'Player: $playerName',
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(Icons.edit,
+                                              color: Colors.white),
+                                          onPressed: toggleNameInput,
+                                        ),
+                                      ],
+                                    ),
+
+                                  const SizedBox(height: 20),
+                                  ElevatedButton(
+                                    onPressed: isLoading ? null : startGame,
+                                    style: ElevatedButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 40, vertical: 15),
+                                    ),
+                                    child: isLoading
+                                        ? const CircularProgressIndicator()
+                                        : const Text(
+                                            'Start Game',
+                                            style: TextStyle(fontSize: 20),
+                                          ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  }),
                 ),
               ),
             ),

@@ -4,7 +4,8 @@ import 'package:http/http.dart' as http;
 class ApiService {
   // Change this URL based on your environment
   // For Android emulator:
-  static const String baseUrl = 'http://10.0.2.2:3000/api';
+  static const String baseUrl =
+      'https://master-o-assignment-aihc.onrender.com/api';
   // For iOS simulator:
   // static const String baseUrl = 'http://localhost:3000/api';
   // For physical device on same network as your computer:
